@@ -18,6 +18,47 @@ test.describe('Open roles listing', () => {
         await expect(page.getByTestId('role-card')).toHaveCount(expectedRoleCount);
     });
 
+    test('filters by department and location, combines selections, and resets', async ({ page }) => {
+        await page.goto('/');
+        const visibleRoles = page.locator('[data-testid="role-card"]:visible');
+
+        await page.getByLabel('Woodinville, WA, USA', { exact: true }).check();
+        await expect(visibleRoles).toHaveCount(3);
+        await page.getByLabel('Woodinville, WA, USA', { exact: true }).uncheck();
+
+        await page.getByLabel('Finance', { exact: true }).check();
+        await expect(visibleRoles).toHaveCount(2);
+
+        await page.getByLabel('Woodinville, WA, USA', { exact: true }).check();
+        await expect(visibleRoles).toHaveCount(1);
+        await expect(
+            page.getByTestId('role-card').filter({
+                has: page.getByRole('heading', { name: 'Financial Analyst', exact: true }),
+            }),
+        ).toBeVisible();
+
+        await page.getByLabel('Finance', { exact: true }).uncheck();
+        await page.getByLabel('Technology', { exact: true }).check();
+        await expect(visibleRoles).toHaveCount(0);
+        const emptyStateText = page.getByTestId('empty-state-text');
+        await expect(emptyStateText).toBeVisible();
+        await expect(emptyStateText).toHaveText('No roles match your filters. Try changing or resetting them.');
+
+        await page.getByTestId('reset-role-filters').click();
+        await expect(visibleRoles).toHaveCount(expectedRoleCount);
+        await expect(page.getByTestId('empty-state')).toBeHidden();
+        await expect(page.getByLabel('Technology', { exact: true })).not.toBeChecked();
+        await expect(page.getByLabel('Woodinville, WA, USA', { exact: true })).not.toBeChecked();
+    });
+
+    test('allows multiple selections within a filter group', async ({ page }) => {
+        await page.goto('/');
+        await page.getByLabel('Technology', { exact: true }).check();
+        await page.getByLabel('Finance', { exact: true }).check();
+
+        await expect(page.locator('[data-testid="role-card"]:visible')).toHaveCount(4);
+    });
+
     test('links through to a role detail page', async ({ page }) => {
         await page.goto('/');
         const firstCard = page.getByTestId('role-card').first();
