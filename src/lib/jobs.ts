@@ -7,6 +7,19 @@
  */
 import type { Job } from '../types/job';
 
+/** Filter jobs by selected departments and locations without mutating input. */
+export function filterJobs(
+    jobs: Job[],
+    departments: string[],
+    locations: string[],
+): Job[] {
+    return jobs.filter(
+        (job) =>
+            (departments.length === 0 || departments.includes(job.department)) &&
+            (locations.length === 0 || locations.includes(job.location)),
+    );
+}
+
 /** Return jobs sorted by posted date, newest first (does not mutate input). */
 export function sortByNewest(jobs: Job[]): Job[] {
     return [...jobs].sort(

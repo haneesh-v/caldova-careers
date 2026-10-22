@@ -1,19 +1,67 @@
 import { describe, it, expect } from 'vitest';
-import { sortByNewest, formatPostedDate } from './jobs';
+import { filterJobs, sortByNewest, formatPostedDate } from './jobs';
 import type { Job } from '../types/job';
 
-function makeJob(slug: string, postedDate: string): Job {
+function makeJob(
+    slug: string,
+    postedDate: string,
+    department = 'Technology',
+    location = 'Remote',
+): Job {
     return {
         slug,
         title: `Role ${slug}`,
-        department: 'Technology',
-        location: 'Remote',
+        department,
+        location,
         type: 'Full-time',
         remote: true,
         postedDate,
         summary: 'A role.',
     };
 }
+
+describe('filterJobs', () => {
+    const jobs = [
+        makeJob('frontend', '2027-01-01', 'Technology', 'Remote'),
+        makeJob('platform', '2027-01-02', 'Technology', 'Vancouver'),
+        makeJob('finance-woodinville', '2027-01-03', 'Finance', 'Woodinville'),
+        makeJob('finance-helsinki', '2027-01-04', 'Finance', 'Helsinki'),
+    ];
+
+    it('filters by department, allowing multiple selected departments', () => {
+        expect(filterJobs(jobs, ['Technology', 'Finance'], []).map((job) => job.slug)).toEqual([
+            'frontend',
+            'platform',
+            'finance-woodinville',
+            'finance-helsinki',
+        ]);
+        expect(filterJobs(jobs, ['Technology'], []).map((job) => job.slug)).toEqual([
+            'frontend',
+            'platform',
+        ]);
+    });
+
+    it('filters by location, allowing multiple selected locations', () => {
+        expect(filterJobs(jobs, [], ['Remote', 'Helsinki']).map((job) => job.slug)).toEqual([
+            'frontend',
+            'finance-helsinki',
+        ]);
+    });
+
+    it('combines department and location filters with AND', () => {
+        expect(filterJobs(jobs, ['Technology', 'Finance'], ['Woodinville']).map((job) => job.slug))
+            .toEqual(['finance-woodinville']);
+    });
+
+    it('returns all jobs when no filters are selected', () => {
+        expect(filterJobs(jobs, [], [])).toEqual(jobs);
+    });
+
+    it('returns no jobs when selected filters do not match', () => {
+        expect(filterJobs(jobs, ['Technology'], ['Woodinville'])).toEqual([]);
+        expect(filterJobs([], [], [])).toEqual([]);
+    });
+});
 
 describe('sortByNewest', () => {
     it('orders jobs by posted date, newest first', () => {
